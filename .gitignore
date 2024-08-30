@@ -1,0 +1,8 @@
+# Ignore node_modules directory in the backend
+/back/node_modules/
+
+# Ignore gestion_tache directory
+/gestion_tache/node_modules/
+
+# Optional: You can add more files and directories to ignore here
+/node_modules/
