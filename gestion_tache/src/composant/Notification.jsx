@@ -1,17 +1,18 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { FaCheck } from "react-icons/fa"; // Import the check icon
+import {  FaEye } from "react-icons/fa";
+import { format, parseISO } from "date-fns"; // Import parseISO to handle ISO date strings
 
 const Notification = () => {
-  const [all_notification, setAllNotification] = useState([]);
+  const [allNotifications, setAllNotifications] = useState([]);
 
-  const fetchData = async () => {
+  const fetchNotifications = async () => {
     try {
       const response = await axios.get(
         "http://localhost:3000/api/all-notification"
       );
       if (response.status === 200) {
-        setAllNotification(response.data.result);
+        setAllNotifications(response.data.result);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -19,47 +20,60 @@ const Notification = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchNotifications();
   }, []);
 
-  const setRead = async (Id_not) => {
+  const markAsRead = async (notificationId) => {
     try {
       const response = await axios.post("http://localhost:3000/api/set-read", {
-        Id_not: Id_not,
+        Id_not: notificationId,
       });
       if (response.status === 200) {
-        alert("Notification deja vu.");
-        fetchData();
+        alert("Notification marquer deja vu.");
+        fetchNotifications();
       }
     } catch (error) {
-      console.error("Error setting notification as read:", error);
+      console.error("Error marking notification as read:", error);
     }
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString(); // Format to local date and time
+    try {
+      // Parse the ISO date string
+      const date = parseISO(dateString);
+      // Format the date
+      return format(date, "dd MMMM yyyy à HH:mm");
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid Date"; // Fallback if there's an error
+    }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8">
-      {all_notification &&
-        all_notification.map((n, index) => (
+    <div className="max-w-md mx-auto mt-10">
+      {allNotifications.length > 0 ? (
+        allNotifications.map((notification, index) => (
           <div
             key={index}
-            className="flex flex-row justify-between items-center bg-white p-4 mb-4 rounded-lg shadow-md"
+            className="flex items-center justify-between bg-white p-4 mb-4 rounded-lg shadow-md"
           >
-            <p className="text-gray-700">
-              {n.message} à la date {formatDate(n.date)}
+            <p className="text-gray-700 font-light">
+              {notification.message}{" "}
+              <span className="text-gray-500">
+                le {formatDate(notification.Date)}
+              </span>
             </p>
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded flex items-center justify-center"
-              onClick={() => setRead(n.Id_not)}
+              className="bg-cyan-500 hover:bg-blue-700 text-black font-semibold py-2 px-4 rounded flex items-center"
+              onClick={() => markAsRead(notification.Id_not)}
             >
-              <FaCheck className="text-white" />
+              <FaEye  />
             </button>
           </div>
-        ))}
+        ))
+      ) : (
+        <p className="text-center text-gray-500">No notifications available.</p>
+      )}
     </div>
   );
 };

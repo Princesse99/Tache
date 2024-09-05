@@ -10,6 +10,14 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+
+
+// variable pour la configuration de passeportjs pour l'authentification
+const crypto = require("crypto");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+const jwt = require("jsonwebtoken");
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -67,8 +75,7 @@ const upload = multer({ storage: storage });
 // User Routes
 app.post("/api/login", (req, res) => {
   const { email, password, role } = req.body;
-  const sql =
-    "SELECT * FROM utilisateur WHERE Email = ? AND Mot_Passe = ? AND Role = ?";
+  const sql = "SELECT * FROM utilisateur WHERE Email = ? AND Mot_Passe = ? AND Role = ?";
   db.query(sql, [email, password, role], (err, results) => {
     if (err) {
       console.error("Error verifying user:", err);
@@ -85,6 +92,137 @@ app.post("/api/login", (req, res) => {
     } else {
       res.json({ success: false });
     }
+  });
+});
+
+// nouveau login
+
+// configuration de passeport
+passport.use(
+  "local",
+  new LocalStrategy(
+    {
+      usernameField: "email",
+      passwordField: "password",
+      passReqToCallback: true,
+    },
+    async (req, email, password, done) => {
+      // connaitre le rpole depuis req.body
+      const role = req.body.role;
+      try {
+        db.query(
+          "SELECT * FROM utilisateur WHERE Email = ? AND Mot_Passe = ? AND Role = ?",
+          [email, password, role],
+          (err, resultat) => {
+            if (err) return done(err);
+
+            const user = resultat[0];
+            if (!user) {
+              return done(null, false, {
+                message: "Incorrect authentification",
+              });
+            }
+
+            return done(null, user);
+          }
+        );
+      } catch (e) {
+        return done(e);
+      }
+    }
+  )
+);
+//========================================= api pour login maintenant====================================//////
+// creation de token
+const jwtsecret = crypto.randomBytes(64).toString("hex");
+// pour l'api
+app.post("/api/authentification", (req, res, next) => {
+  passport.authenticate("local", { session: false }, (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res.json({ message: "authentication failed" });
+    }
+    const token = jwt.sign({ userId: user.ID }, jwtsecret, {
+      expiresIn: "24h",
+    });
+    return res.send({
+      message: "authentification succeded",
+      token: token,
+      user: user,
+      success: true,
+    });
+  })(req, res, next);
+});
+
+// fin authentification
+
+
+
+
+// Vérifier si l'utilisateur administrateur existe
+const checkAdmin = () => {
+  const sql = "SELECT * FROM utilisateur WHERE Role = 'Admin' LIMIT 1";
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error checking admin user:", err);
+      return;
+    }
+    if (results.length === 0) {
+      // Créer le compte administrateur par défaut
+      const adminSql = "INSERT INTO utilisateur (Nom, Email, Mot_Passe, Role) VALUES (?, ?, ?, ?)";
+      db.query(adminSql, ['Admin', 'admin@example.com', 'adminpassword', 'Admin'], (err, result) => {
+        if (err) {
+          console.error("Error creating admin user:", err);
+          return;
+        }
+        console.log("Compte administrateur créé avec succès");
+      });
+    }
+  });
+};
+
+// Appeler la fonction lors du démarrage du serveur
+checkAdmin();
+
+// Route pour modifier le mot de passe de l'administrateur
+app.put("/api/admin/change-password", (req, res) => {
+  const {email, currentPassword, newPassword } = req.body;
+
+  if (!email ||!currentPassword || !newPassword) {
+    return res.status(400).json({ error: "Current and new passwords are required" });
+  }
+
+  // Check admin user
+  const checkAdminSql = "SELECT * FROM utilisateur WHERE Role = 'Admin' AND Email=?";
+  db.query(checkAdminSql,[email], (err, results) => {
+    if (err) {
+      console.error("Error checking admin user:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Admin user not found" });
+    }
+
+    const admin = results[0];
+
+    // Check current password
+    if (admin.Mot_Passe !== currentPassword || admin.Email !== email) {
+      return res.status(400).json({ error: "Mot de passe actuel est incorrecte" });
+    }
+
+    // Update password
+    const updatePasswordSql = "UPDATE utilisateur SET Mot_Passe = ? WHERE ID = ?";
+    db.query(updatePasswordSql, [newPassword, admin.ID], (err, result) => {
+      if (err) {
+        console.error("Error updating password:", err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      res.json({ message: "Mot de passe correcte" });
+    });
   });
 });
 
@@ -228,11 +366,13 @@ app.get("/api/taskCounts", (req, res) => {
     res.json(results[0]);
   });
 });
+//statistique
+
 //notificat
 app.post("/api/create-notification", (req, res) => {
   const { Id_tache, tache, utilisateur, date, id_user } = req.body;
   console.log("arrivage de requete");
-  const message = `utilisateur ${utilisateur} a executer la tache ${tache} a la date ${date} `;
+  const message = `utilisateur ${utilisateur} a executer la tache ${tache} `;
 
   const sql =
     "INSERT INTO `notification`( `message`, `ID`, `Id_tache`) VALUES (?, ?, ?)";

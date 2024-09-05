@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import useAuthUser from "react-auth-kit/hooks/useAuthUser";
 
-const TacheUtilisateur = ({ userId }) => {
+const TacheUtilisateur = () => {
+  const user = useAuthUser();
+  const { userId, nom } = user;
   const [tasks, setTasks] = useState([]);
+  const [validatedTasks, setValidatedTasks] = useState([]); // State to track validated tasks
 
   const fetchTasks = async () => {
     try {
@@ -14,9 +18,11 @@ const TacheUtilisateur = ({ userId }) => {
       console.error("Error fetching tasks for user:", error);
     }
   };
+
   useEffect(() => {
     fetchTasks();
   }, [userId]);
+
   const send_tache = async (tache) => {
     const { Id_tache, Description_tache } = tache;
     alert("execution");
@@ -26,22 +32,22 @@ const TacheUtilisateur = ({ userId }) => {
         {
           Id_tache: Id_tache,
           tache: Description_tache,
-          utilisateur: "Sarobidy",
+          utilisateur: nom,
           date: new Date(),
-          id_user: 114,
+          id_user: userId,
         }
       );
       console.log(response);
-      if (response.status===200) {
+      if (response.status === 200) {
+        setValidatedTasks([...validatedTasks, Id_tache]); // Mark the task as validated
         fetchTasks();
-        // alert("Coucou sarobidy");
       }
     } catch (error) {
       console.error("There was an error sending the request:", error);
       alert("Failed to send request");
     }
   };
-  
+
   return (
     <div className="container mx-auto mt-5 px-4">
       <h2 className="text-2xl font-semibold text-gray-800">Mes Tâches</h2>
@@ -56,7 +62,7 @@ const TacheUtilisateur = ({ userId }) => {
               <th className="py-2 px-4 border">Statut</th>
               <th className="py-2 px-4 border">Priorité</th>
               <th className="py-2 px-4 border">Lieu</th>
-              <th> Action</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -70,10 +76,13 @@ const TacheUtilisateur = ({ userId }) => {
                 <td className="py-2 px-4 border">{task.Status}</td>
                 <td className="py-2 px-4 border">{task.Priorite}</td>
                 <td className="py-2 px-4 border">{task.Lieu}</td>
-                <td className="mt-4 ">
+                <td className="mt-4">
                   <button
                     onClick={async () => await send_tache(task)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded mr-2"
+                    className={`bg-yellow-500 text-white px-2 py-1 rounded mr-2 ${
+                      validatedTasks.includes(task.Id_tache) ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={validatedTasks.includes(task.Id_tache)} // Disable the button if the task is validated
                   >
                     Valider
                   </button>

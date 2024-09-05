@@ -4,6 +4,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import axios from 'axios';
+import { FaArrowRight,FaArrowLeft } from "react-icons/fa";
 
 // Define the localizer using date-fns
 const localizer = dateFnsLocalizer({
@@ -41,12 +42,9 @@ function TaskCalendar() {
     }, []);
 
     return (
-        <div className="container mx-auto mt-5 px-4">
+        <div className="container mx-auto mt-5 px-4 w-screen max-w-screen-lg">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-gray-800 mb-4">Calendrier des Tâches</h1>
-                {/* <p className="text-gray-600 leading-relaxed">
-                    Bienvenue dans le calendrier des tâches ! Cette application affiche vos tâches sous forme d'événements sur un calendrier. Les tâches sont automatiquement récupérées et affichées aux dates correspondantes. Utilisez les boutons de navigation pour parcourir le calendrier par mois, semaine, jour ou agenda. Cliquez sur un événement pour voir plus de détails. Nous espérons que cet outil vous aidera à mieux organiser votre temps !
-                </p> */}
             </div>
 
             <Calendar
@@ -56,8 +54,8 @@ function TaskCalendar() {
                 endAccessor="end"
                 style={{ height: 500 }}
                 messages={{
-                    next: "Suivant",
-                    previous: "Précédent",
+                    next: <FaArrowRight/>,
+                    previous: <FaArrowLeft/>,
                     today: "Aujourd'hui",
                     month: "Mois",
                     week: "Semaine",
@@ -69,7 +67,7 @@ function TaskCalendar() {
                     noEventsInRange: "Aucun événement dans cette plage de dates.",
                     showMore: total => `+ ${total} plus`
                 }}
-                className="bg-white rounded-lg shadow-md p-4"
+                className="bg-white  rounded-lg shadow-md p-4"
             />
         </div>
     );

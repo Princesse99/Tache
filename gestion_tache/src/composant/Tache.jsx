@@ -126,36 +126,36 @@ function Tache() {
     };
 
     return (
-        <div className="container mx-auto mt-5 px-4">
-            <div className="text-center py-4 bg-gray-100 border-b border-gray-300">
-                <h1 className="text-2xl font-semibold text-gray-800">Liste des Tâches Enregistrées</h1>
+        <div className="container mx-auto mt-20 -ml-20 px-4 w-screen max-w-screen-lg">
+            <div className="text-center py-4 mb-4 w-screen max-w-screen-lg">
+                <h1 className="text-2xl font-semibold text-black">Liste des Tâches Enregistrées</h1>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 space-y-4 md:space-y-0">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4 space-y-4 md:space-y-0 mt-9">
                 <button
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                    className="bg-cyan-500 hover:bg-blue-700 text-black font-bold py-2 px-4 rounded flex items-center"
                     onClick={handleAddTask}
                 >
                     <FaPlus className="mr-2" /> Ajouter une tâche
                 </button>
-                <div className="flex flex-col md:flex-row items-center space- y-4 md:space-y-0 md:space-x-4">
-                    <div className="flex items-center">
-                        <FaSearch className="mr-2" />
+                <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div className="flex items-center border border-gray-300 rounded">
+                        <FaSearch className="text-gray-500 mr-2 ml-3" />
                         <input
                             type="text"
                             placeholder="Rechercher par Titre..."
-                            className="border rounded px-3 py-1"
+                            className="border-0 outline-none px-3 py-2 w-full"
                             value={searchTerm}
                             onChange={handleSearchChange}
                         />
                     </div>
-                    <div className="flex items-center">
-                        <label htmlFor="statusFilter" className="mr-2">Filtrer par Statut:</label>
+                    <div className="flex items-center border border-gray-300 rounded">
+                        <label htmlFor="statusFilter" className="text-gray-700 mr-2">Filtrer par Statut:</label>
                         <select
                             id="statusFilter"
                             value={selectedStatus}
                             onChange={handleStatusChange}
-                            className="border rounded px-3 py-1"
+                            className="border-0 outline-none px-3 py-2"
                         >
                             <option value="">Tous</option>
                             <option value="En cours">En cours</option>
@@ -166,151 +166,160 @@ function Tache() {
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full bg-white divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th className="py-2 px-4 border">Titre</th>
-                            <th className="py-2 px-4 border">Description</th>
-                            <th className="py-2 px-4 border">Échéance</th>
-                            <th className="py-2 px-4 border">Statut</th>
-                            <th className="py-2 px-4 border">Priorité</th>
-                            <th className="py-2 px-4 border">Lieu</th>
-                            <th className="py-2 px-4 border">Utilisateur</th>
-                            <th className="py-2 px-4 border">Image</th>
-                            <th className="py-2 px-4 border">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tasks
-                            .filter(task =>
-                                (task.Titre_tache.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                task.Description_tache.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                                (selectedStatus ? task.Status === selectedStatus : true)
-                            )
-                            .map(task => (
-                                <tr key={task.Id_tache}>
-                                    <td className="py-2 px-4 border">{task.Titre_tache}</td>
-                                    <td className="py-2 px-4 border">{task.Description_tache}</td>
-                                    <td className="py-2 px-4 border">{new Date(task.Echeance_tache).toLocaleDateString()}</td>
-                                    <td className="py-2 px-4 border">{task.Status}</td>
-                                    <td className="py-2 px-4 border">{task.Priorite}</td>
-                                    <td className="py-2 px-4 border">{task.Lieu}</td>
-                                    <td className="py-2 px-4 border">{task.ID}</td>
-                                    <td className="py-2 px-4 border">
-                                        {task.Image_utilisateur ? (
-                                            <div className="flex items-center mt-2 text-xs md:text-sm">
-                                                <img
-                                                    src={`http://localhost:3000${task.Image_utilisateur}`}
-                                                    alt={task.Nom_utilisateur}
-                                                    className="w-6 h-6 rounded-full mr-2 md:w-8 md:h-8"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <span>Pas d'image</span>
-                                        )}
-                                    </td>
-                                    <td className="py-2 px-4 border">
-                                        <button 
-                                            className="text-blue-600 hover:text-blue-800 mr-2"
-                                            onClick={() => handleEditTask(task)}
-                                        >
-                                            <FaEdit />
-                                        </button>
-                                        <button 
-                                            className="text-red-600 hover:text-red-800"
-                                            onClick={() => handleDeleteTask(task.Id_tache)}
-                                        >
-                                            <FaTrash />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                    </tbody>
-                </table>
+            <div className="bg-white shadow overflow-hidden border-b border-gray-200  rounded-lg">
+                <div className="overflow-y-auto" style={{ maxHeight: '500px' }}>
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-cyan-500">
+                            <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Titre</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Description</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Échéance</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Statut</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Priorité</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Lieu</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Utilisateur</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Image</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {tasks
+                                .filter(task =>
+                                    (task.Titre_tache.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    task.Description_tache.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                                    (selectedStatus ? task.Status === selectedStatus : true)
+                                )
+                                .map(task => (
+                                    <tr key={task.Id_tache}>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{task.Titre_tache}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{task.Description_tache}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{new Date(task.Echeance_tache).toLocaleDateString()}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{task.Status}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{task.Priorite}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{task.Lieu}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{task.ID}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {task.Image_utilisateur ? (
+                                                <div className="flex items-center mt-2 text-xs md:text-sm">
+                                                    <img
+                                                        src={`http://localhost:3000${task.Image_utilisateur}`}
+                                                        alt={task.Nom_utilisateur}
+                                                        className="w-8 h-8 rounded-full"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-500">Pas d'image</span>
+                                            )}
+                                        </td>
+                                        <td className="py-2 px-4 border-b">
+                                            <button 
+                                                className="bg-blue-600 text-white px-3 py-1 rounded mr-2 hover:bg-blue-700"
+                                                onClick={() => handleEditTask(task)}
+                                            >
+                                                <FaEdit />
+                                            </button>
+                                            <button
+                                                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                                                onClick={() => handleDeleteTask(task.Id_tache)}
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {showForm && (
-                <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
-                    <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-                        <h2 className="text-lg font-semibold mb-4">{editTask ? "Modifier Tâche" : "Ajouter Tâche"}</h2>
+               <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+                    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+                        <h2 className="text-2xl font-semibold mb-4">{editTask ? 'Modifier la Tâche' : 'Ajouter une Tâche'}</h2>
                         <form>
                             <div className="mb-4">
-                                <label className="block text-gray-700">Titre</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="Titre_tache">Titre</label>
                                 <input
                                     type="text"
+                                    id="Titre_tache"
                                     name="Titre_tache"
                                     value={newTask.Titre_tache}
                                     onChange={handleChange}
-                                    className="border rounded px-3 py-1 w-full"
+                                    className="border border-gray-300 rounded w-full py-2 px-3 text-sm leading-tight focus:outline-none"
                                 />
                             </div>
                             <div className="mb-4">
-                                <label className="block text-gray-700">Description</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="Description_tache">Description</label>
                                 <textarea
+                                    id="Description_tache"
                                     name="Description_tache"
                                     value={newTask.Description_tache}
                                     onChange={handleChange}
-                                    className="border rounded px-3 py-1 w-full"
-                                ></textarea>
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700">Échéance</label>
-                                <input
-                                    type="date"
-                                    name="Echeance_tache"
-                                    value={newTask.Echeance_tache}
-                                    onChange={handleChange}
-                                    className="border rounded px-3 py-1 w-full"
+                                    className="border border-gray-300 rounded w-full py-2 px-3 text-sm leading-tight focus:outline-none"
                                 />
                             </div>
                             <div className="mb-4">
-                                <label className="block text-gray-700">Statut</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="Echeance_tache">Échéance</label>
+                                <input
+                                    type="date"
+                                    id="Echeance_tache"
+                                    name="Echeance_tache"
+                                    value={newTask.Echeance_tache}
+                                    onChange={handleChange}
+                                    className="border border-gray-300 rounded w-full py-2 px-3 text-sm leading-tight focus:outline-none"
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="Status">Statut</label>
                                 <select
+                                    id="Status"
                                     name="Status"
                                     value={newTask.Status}
                                     onChange={handleChange}
-                                    className="border rounded px-3 py-1 w-full"
+                                    className="border border-gray-300 rounded w-full py-2 px-3 text-sm leading-tight focus:outline-none"
                                 >
-                                    <option value="">Choisir...</option>
+                                    <option value="">Sélectionner</option>
                                     <option value="En cours">En cours</option>
                                     <option value="Terminer">Terminer</option>
                                     <option value="En attente">En attente</option>
                                 </select>
                             </div>
                             <div className="mb-4">
-                                <label className="block text-gray-700">Priorité</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="Priorite">Priorité</label>
                                 <select
+                                    id="Priorite"
                                     name="Priorite"
                                     value={newTask.Priorite}
                                     onChange={handleChange}
-                                    className="border rounded px-3 py-1 w-full"
+                                    className="border border-gray-300 rounded w-full py-2 px-3 text-sm leading-tight focus:outline-none"
                                 >
-                                    <option value="">Choisir...</option>
-                                    {priorityOptions.map(option => (
-                                        <option key={option} value={option}>{option}</option>
+                                    <option value="">Sélectionner</option>
+                                    {priorityOptions.map(priority => (
+                                        <option key={priority} value={priority}>{priority}</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="mb-4">
-                                <label className="block text-gray-700">Lieu</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="Lieu">Lieu</label>
                                 <input
                                     type="text"
+                                    id="Lieu"
                                     name="Lieu"
                                     value={newTask.Lieu}
                                     onChange={handleChange}
-                                    className="border rounded px-3 py-1 w-full"
+                                    className="border border-gray-300 rounded w-full py-2 px-3 text-sm leading-tight focus:outline-none"
                                 />
                             </div>
                             <div className="mb-4">
-                                <label className="block text-gray-700">ID Utilisateur</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="ID">Utilisateur</label>
                                 <select
+                                    id="ID"
                                     name="ID"
                                     value={newTask.ID}
                                     onChange={handleChange}
-                                    className="border rounded px-3 py-1 w-full"
+                                    className="border border-gray-300 rounded w-full py-2 px-3 text-sm leading-tight focus:outline-none"
                                 >
-                                    <option value="">Choisir...</option>
+                                    <option value="">Sélectionner</option>
                                     {users.map(user => (
                                         <option key={user.ID} value={user.ID}>{user.ID}</option>
                                     ))}
@@ -320,14 +329,14 @@ function Tache() {
                                 <button
                                     type="button"
                                     onClick={handleSaveTask}
-                                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    className="bg-cyan-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                                 >
-                                    {editTask ? "Enregistrer" : "Ajouter"}
+                                    {editTask ? 'Enregistrer les modifications' : 'Ajouter la Tâche'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowForm(false)}
-                                    className="ml-4 bg-gray-300 hover:bg-gray-500 text-gray-800 hover:text-white font-bold py-2 px-4 rounded"
+                                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-4"
                                 >
                                     Annuler
                                 </button>
