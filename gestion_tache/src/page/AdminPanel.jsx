@@ -1,172 +1,370 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import io from "socket.io-client";
+import React, { useEffect, useState } from "react";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
-  FaHome,
-  FaTasks,
-  FaUser,
-  FaBell,
-  FaSignOutAlt,
-  FaCalendar,
-  FaUserCircle,
-  FaMoon,
-  FaCog 
-} from "react-icons/fa";
-import { useNavigate, Link, Outlet } from "react-router-dom";
-// maka le signout fonction
+  AppBar,
+  Toolbar,
+  Typography,
+  Avatar,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  IconButton,
+  Snackbar,
+  Alert,
+  Menu,
+  MenuItem,
+} from "@mui/material";
+import {
+  Dashboard,
+  InsertDriveFile,
+  Person,
+  ExpandLess,
+  ExpandMore,
+  ListAlt,
+  CalendarToday,
+  Home,
+  AccountCircle,
+  Logout,
+} from "@mui/icons-material";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import { Link, useNavigate } from "react-router-dom";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import ListIcon from "@mui/icons-material/List";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import Swal from "sweetalert2"; // Import SweetAlert2
+import axios from "axios";
+import "./style.css";
 import useSignOut from "react-auth-kit/hooks/useSignOut";
-
-const socket = io("http://localhost:3001");
+import Badge from "@mui/material/Badge";
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark",
+    background: {
+      default: "#1C2237",
+      paper: "#2A314A",
+    },
+    text: {
+      primary: "#FFFFFF",
+      secondary: "#9E9E9E",
+    },
+    primary: {
+      main: "#14BDAC",
+    },
+    secondary: {
+      main: "#F05E72",
+    },
+  },
+  typography: {
+    fontFamily: "Arial, sans-serif",
+  },
+});
 
 const AdminPanel = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [taskCounts, setTaskCounts] = useState({
-    totalTaches: 0,
-    tachesEnCours: 0,
-    tachesEnAttente: 0,
-    tachesTerminees: 0,
-  });
+  const [openUtilisateur, setOpenUtilisateur] = useState(false);
+  const [openTaches, setOpenTaches] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [count, setCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false); // Initialize mobileOpen state
+  const navigate = useNavigate();
+  const signout = useSignOut();
+  const handleUtilisateurClick = () => {
+    setOpenUtilisateur(!openUtilisateur);
+  };
 
-  const fetchData = async () => {
+  const handleTachesClick = () => {
+    setOpenTaches(!openTaches);
+  };
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  const getAllNotifications = async () => {
     try {
       const response = await axios.get(
         "http://localhost:3000/api/all-notification"
       );
-      if (response.status === 200) {
-        setNotificationCount(response.data.count);
+      if (response.data.message) {
+        const unreadNotifications = response.data.result.filter(
+          (note) => !note.is_read
+        );
+        setCount(unreadNotifications.length);
+        setNotifications(unreadNotifications);
       }
     } catch (error) {
-      console.error("Error fetching notification count:", error);
+      console.log(error);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const handleNotificationClick = async (notification) => {
+    setSnackbarOpen(true);
+
+    try {
+      await axios.post("http://localhost:3000/api/set-read", {
+        Id_not: notification.Id_not,
+      });
+      getAllNotifications();
+    } catch (error) {
+      console.log("Error marking notification as read:", error);
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
 
   useEffect(() => {
-    const fetchTaskCounts = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:3000/api/taskCounts"
-        );
-        setTaskCounts(response.data);
-      } catch (error) {
-        console.error("Error fetching task counts:", error);
-      }
-    };
-    fetchTaskCounts();
+    getAllNotifications();
   }, []);
-
-  useEffect(() => {
-    socket.on("notification-received", (data) => {
-      setNotifications((prev) => [
-        ...prev,
-        `Notification de l'utilisateur ${data.userId}: ${data.message}`,
-      ]);
-    });
-
-    return () => {
-      socket.off("notification-received");
-    };
-  }, []);
-
-  // ========initialisation d'une instance de signout===============//
-  const signOut = useSignOut();
 
   const handleLogout = () => {
-    signOut();
-    window.location.reload();
-    navigate("/");
+    Swal.fire({
+      title: "Se déconnecter?",
+      text: "Voulez-vous vraiment vous déconnecter?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "OUI",
+      cancelButtonText: "NON",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Add your signOut logic here, e.g., clear user session
+        signout();
+        navigate("/");
+        window.location.reload();
+      }
+    });
+  };
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
   };
 
   return (
-    <div className="flex min-h-screen w-1/2 bg-black">
-      
-      {/* Sidebar */}
-      <aside
-        className={`w-64 bg-cyan-500 text-black fixed top-0 left-0 h-full shadow-lg`}
-      >
-        <div className="p-6 flex flex-col justify-between h-full">
-          <div>
-            <h1 className="text-xl font-bold mb-6 px-6">OrigamiTech</h1>
-            <nav>
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 mb-4 rounded text-gray-800"
+    <ThemeProvider theme={darkTheme}>
+      <AppBar position="fixed" className="glass" sx={{ boxShadow: "none" }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1, fontSize: "15px" }}>
+            Admin
+          </Typography>
+          <Typography variant="body1">
+            {new Date().toLocaleDateString("fr-FR", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </Typography>
+
+          <IconButton color="inherit" onClick={() => setSnackbarOpen(true)}>
+            <Badge
+              badgeContent={count}
+              color="error"
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              overlap="circular"
+            >
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+          {/* <IconButton color="inherit" onClick={toggleDarkMode}>
+            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton> */}
+          {/* <Avatar alt="User" src="/path/to/profile.jpg" sx={{ ml: 2,color:'#ccc' }} /> */}
+          <MenuItem onClick={handleLogout}>
+            <Logout />
+            <ListItemText />
+          </MenuItem>
+        </Toolbar>
+      </AppBar>
+
+      <div className="flex mt-5">
+        <div className={`glass sidebar`}>
+          <List sx={{ color: "white" }}>
+            <ListItem button component={Link} to="/">
+              <ListItemIcon>
+                <Home sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Accueil"
+                sx={{
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  "&:hover": {
+                    color: "#03dac5",
+                  },
+                }}
               />
-              <Link
-                to="/"
-                className="flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700 w-full text-left "
-              >
-                <FaHome className="mr-2" /> Dashboard
-              </Link>
-              <Link
-                to="/Utilisateur"
-                className="flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700 w-full text-left "
-              >
-                <FaUser className="mr-2" /> Utilisateur
-              </Link>
-              <Link
-                to="/Tache"
-                className="flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700 w-full text-left"
-              >
-                <FaTasks className="mr-2" /> Tâches
-              </Link>
-              <Link
-                to="/Notification"
-                className="relative flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700 w-full text-left"
-              >
-                <FaBell className="mr-2 text-2xl" />
-                <p className="absolute -top-1 -right-1 bg-red-600 text-black font-bold text-xs w-5 h-5 flex items-center justify-center rounded-full shadow-lg">
-                  {notificationCount}
-                </p>
-                Notifications
-              </Link>
-              <Link
-                to="/TaskCalendar"
-                className="flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700 w-full text-left"
-              >
-                <FaCalendar className="mr-2" /> Calendrier
-              </Link>
-              <Link
-                to="/ChangePasswordForm"
-                className="flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700 w-full text-left"
-              >
-                <FaUserCircle className="mr-2" /> Compte
-              </Link>
-            </nav>
-          </div>
-          {/* <div className="flex space-x-4">
-          <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-            <FaMoon className="text-gray-800 dark:text-gray-200" size={20} />
-          </button>
-          <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" >
-            <FaCog className="text-gray-800 dark:text-gray-200" size={20} />
-          </button>
-        </div> */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center py-4 px-4 mb-2 rounded hover:bg-red-700 w-full text-left"
-          >
-            <FaSignOutAlt className="mr-2" /> Se Déconnecter
-          </button>
+            </ListItem>
+
+            <ListItem button onClick={handleUtilisateurClick}>
+              <ListItemIcon>
+                <Person sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Utilisateur"
+                sx={{
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  "&:hover": {
+                    color: "#03dac5",
+                  },
+                }}
+              />
+              {openUtilisateur ? (
+                <ExpandLess sx={{ color: "white" }} />
+              ) : (
+                <ExpandMore sx={{ color: "white" }} />
+              )}
+            </ListItem>
+
+            <Collapse in={openUtilisateur} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItem
+                  button
+                  component={Link}
+                  to="/ProfileUser"
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon>
+                    <Person sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Profile" />
+                </ListItem>
+                <ListItem
+                  button
+                  component={Link}
+                  to="/Utilisateur"
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon>
+                    <ListAlt sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Tableau" />
+                </ListItem>
+              </List>
+            </Collapse>
+
+            <ListItem button onClick={handleTachesClick}>
+              <ListItemIcon>
+                <InsertDriveFile sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Taches"
+                sx={{
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  "&:hover": {
+                    color: "#03dac5",
+                  },
+                }}
+              />
+              {openTaches ? (
+                <ExpandLess sx={{ color: "white" }} />
+              ) : (
+                <ExpandMore sx={{ color: "white" }} />
+              )}
+            </ListItem>
+
+            <Collapse in={openTaches} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItem button component={Link} to="/Tache" sx={{ pl: 4 }}>
+                  <ListItemIcon>
+                    <TableChartIcon
+                      sx={{ color: "#FFB5B5", fontSize: "20px" }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText primary="Table" />
+                </ListItem>
+                <ListItem
+                  button
+                  component={Link}
+                  to="/TacheListe"
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon>
+                    <ListIcon sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Liste" />
+                </ListItem>
+                <ListItem
+                  button
+                  component={Link}
+                  to="/CadreTache"
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon>
+                    <DashboardIcon
+                      sx={{ color: "#FFB5B5", fontSize: "20px" }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText primary="Cadre" />
+                </ListItem>
+              </List>
+            </Collapse>
+            <ListItem
+              button
+              component={Link}
+              to="/ChangePasswordForm"
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>
+                <ListAlt sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+              </ListItemIcon>
+              <ListItemText primary="Compte" />
+            </ListItem>
+            <ListItem button component={Link} to="/TaskCalendar">
+              <ListItemIcon>
+                <CalendarToday sx={{ color: "#FFB5B5", fontSize: "20px" }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Calendrier"
+                sx={{
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                  color: "#fff",
+                  "&:hover": {
+                    color: "#03dac5",
+                  },
+                }}
+              />
+            </ListItem>
+          </List>
         </div>
-      </aside>
 
-      {/* Main content */}
-      <main className="flex-1 p-10 transition-transform duration-300 ml-64 ">
-        <Outlet />
-        
-      </main>
-
-    </div>
+        {/* Main Content */}
+      </div>
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity="info"
+          sx={{ width: "100%" }}
+        >
+          {notifications.length > 0
+            ? notifications.map((note) => (
+                <div
+                  key={note.Id_not}
+                  onClick={() => handleNotificationClick(note)}
+                >
+                  {note.message}
+                </div>
+              ))
+            : "Aucune notification"}
+        </Alert>
+      </Snackbar>
+    </ThemeProvider>
   );
 };
 

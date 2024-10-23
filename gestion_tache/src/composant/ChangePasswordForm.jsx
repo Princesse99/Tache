@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import useAuthUser from "react-auth-kit/hooks/useAuthUser";
+import { TextField, Button, Typography, Container, Box } from "@mui/material";
 
 const ChangePasswordForm = () => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -35,70 +36,71 @@ const ChangePasswordForm = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md mt-24 ml-40">
-      <h2 className="text-2xl font-bold text-center mb-4">
-        Changer le mot de passe Admin
-      </h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* <div>
-          <label
-            htmlFor="currentPassword"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-          />
-        </div> */}
-        <div>
-          <label
-            htmlFor="currentPassword"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Mot de passe actuel
-          </label>
-          <input
+    <Container maxWidth="sm" sx={{marginLeft:'200px',marginTop:'10px'}}>
+      <Box
+        sx={{
+          mt: 10,
+          p: 4,
+          boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)", // Soft shadow for depth
+          borderRadius: 4,
+          bgcolor: "rgba(255, 255, 255, 0.25)", // Translucent white background
+          backdropFilter: "blur(12px)", // Frosted glass effect
+          border: "1px solid rgba(255, 255, 255, 0.18)", // Soft, subtle border
+          position: "relative",
+          overflow: "hidden",
+          zIndex: 1, // Keeps content on top
+        }}
+      >
+        <Typography variant="h4" align="center" gutterBottom color="#fff">
+          Changer le mot de passe Admin
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Mot de passe actuel"
             type="password"
-            id="currentPassword"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
+            fullWidth
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            margin="normal"
+            variant="outlined"
+            sx={{ bgcolor: "rgba(255, 255, 255, 0.4)" }} // Slight background for input fields
           />
-        </div>
 
-        <div>
-          <label
-            htmlFor="newPassword"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Nouveau mot de passe
-          </label>
-          <input
+          <TextField
+            label="Nouveau mot de passe"
             type="password"
-            id="newPassword"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            fullWidth
             required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            margin="normal"
+            variant="outlined"
+            sx={{ bgcolor: "rgba(255, 255, 255, 0.4)" }} // Slight background for input fields
           />
-        </div>
-        <button
-          type="submit"
-          className="w-full bg-cyan-500 hover:bg-green-600 text-black font-bold py-2 px-4 rounded-md transition duration-200 ease-in-out"
-        >
-          Confirmer
-        </button>
-      </form>
-      {error && <p className="mt-4 text-red-600 text-center">{error}</p>}
-      {message && <p className="mt-4 text-green-600 text-center">{message}</p>}
-    </div>
+
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 2, background: "#03dac5", borderRadius: "20px" }}
+          >
+            Confirmer
+          </Button>
+        </form>
+        {error && (
+          <Typography color="error" align="center" sx={{ mt: 2 }}>
+            {error}
+          </Typography>
+        )}
+        {message && (
+          <Typography color="success" align="center" sx={{ mt: 2 }}>
+            {message}
+          </Typography>
+        )}
+      </Box>
+    </Container>
   );
 };
 

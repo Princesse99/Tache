@@ -1,185 +1,349 @@
-// src/components/TableauDeBord.jsx
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Grid,
+  Typography,
+  Card,
+  CardContent,
+  ButtonBase,
+  Popover,
+} from "@mui/material";
+import { Bar } from "react-chartjs-2";
+import { Chart as ChartJS } from "chart.js/auto";
+import {
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { FaTasks, FaPlus, FaSpinner, FaCheckCircle } from "react-icons/fa";
 
-import React, { useState, useEffect } from 'react';
-import { Bar, Doughnut } from 'react-chartjs-2';
-import axios from 'axios';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import { FaTasks, FaClock, FaSpinner,FaCheckCircle  } from 'react-icons/fa';
-// Register chart components
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
-const TableauDeBord = () => {
-  // State for task counts
+const Dashboard = () => {
   const [taskCounts, setTaskCounts] = useState({
     totalTaches: 0,
     tachesEnCours: 0,
     tachesTerminees: 0,
     tachesEnAttente: 0,
   });
-
-  // State for charts data
-  const [donneesBarres, setDonneesBarres] = useState({});
-  const [donneesBeignet, setDonneesBeignet] = useState({});
-
-  // State for loading and error handling
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Fetch task counts and chart data on component mount
+  const [dailyTaskStats, setDailyTaskStats] = useState([]);
+  const [monthlyTaskCounts, setMonthlyTaskCounts] = useState([]);
+  const [tasksByStatus, setTasksByStatus] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
   useEffect(() => {
+    const fetchTaskCounts = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/api/taskCounts");
+        if (!response.ok) throw new Error("Error fetching task counts");
+        const data = await response.json();
+        setTaskCounts(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const fetchDailyTaskStats = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/dailyTaskStats"
+        );
+        if (!response.ok) throw new Error("Error fetching daily task stats");
+        const data = await response.json();
+        setDailyTaskStats(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const fetchMonthlyTaskCounts = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/api/tasks/monthly"); // Updated API endpoint
+        if (!response.ok) throw new Error("Error fetching monthly task counts");
+        const data = await response.json();
+        setMonthlyTaskCounts(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
     fetchTaskCounts();
-    fetchChartData();
+    fetchDailyTaskStats();
+    fetchMonthlyTaskCounts();
   }, []);
+///affiche de liste tache dans petit menu
+const handleStatusClick = async (status, event) => {
+  setAnchorEl(event.currentTarget);
+  try {
+    const response = await fetch(`http://localhost:3000/api/tasks/status/${status}`);
+    const data = await response.json();
+    setTasksByStatus(data);
+  } catch (err) {
+    console.error(err);
+  }
+};
+const handleClose = () => {
+  setAnchorEl(null);
+  setTasksByStatus([]);
+};
 
-  // Function to fetch task counts
-  const fetchTaskCounts = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('http://localhost:3000/api/taskCounts');
-      setTaskCounts(response.data);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching task counts:', err);
-      setError('Failed to fetch task counts.');
-      setLoading(false);
-    }
+const open = Boolean(anchorEl);
+const id = open ? "simple-popover" : undefined;
+
+  const labels = dailyTaskStats.map((stat) => stat.date);
+  const enCoursData = dailyTaskStats
+    .filter((stat) => stat.Status === "En cours")
+    .map((stat) => stat.count);
+  const termineeData = dailyTaskStats
+    .filter((stat) => stat.Status === "Terminée")
+    .map((stat) => stat.count);
+  const nouveauData = dailyTaskStats
+    .filter((stat) => stat.Status === "Nouveau")
+    .map((stat) => stat.count);
+
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        label: "En cours",
+        data: enCoursData,
+        backgroundColor: "rgba(255, 159, 64, 0.7)",
+        borderColor: "#FF9F40",
+        borderWidth: 1,
+      },
+      {
+        label: "Terminée",
+        data: termineeData,
+        backgroundColor: "rgba(54, 162, 235, 0.7)",
+        borderColor: "#36A2EB",
+        borderWidth: 1,
+      },
+      {
+        label: "Nouveau",
+        data: nouveauData,
+        backgroundColor: "rgba(75, 192, 192, 0.7)",
+        borderColor: "#4BC0C0",
+        borderWidth: 1,
+      },
+    ],
   };
 
-  // Function to fetch data for charts
-  const fetchChartData = async () => {
-    try {
-      // Example API calls for chart data
-      // Replace these with your actual endpoints and data processing as needed
-
-      // Fetch data for bar chart
-      const barResponse = await axios.get('http://localhost:3000/api/barChartData'); // Example endpoint
-      setDonneesBarres(barResponse.data);
-
-      // Fetch data for doughnut chart
-      const donutResponse = await axios.get('http://localhost:3000/api/doughnutChartData'); // Example endpoint
-      setDonneesBeignet(donutResponse.data);
-    } catch (err) {
-      console.error('Error fetching chart data:', err);
-      // Handle errors if necessary
-    }
-  };
-
-  // Example data setup if API endpoints for charts are not available
-  useEffect(() => {
-    // Sample data for bar chart
-    const barData = {
-      labels: ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Auot', 'Septembre', 'Octobre', 'Novembre','Decembre'],
-      datasets: [
-        {
-          label: 'Nouveau',
-          backgroundColor: '#34d399',
-          data: [0, 48, 32, 0, 0, 0, 0, 0, 0, 0, 0],
-        },
-        {
-          label: 'En attente',
-          backgroundColor: '#3b82f6',
-          data: [0, 0, 0, 0, 0, 0, 55, 60, 36, 31, 0],
-        },
-        {
-          label: 'En cours',
-          backgroundColor: '#f59e0b',
-          data: [0, 0, 0, 0, 0, 38, 0, 0, 48, 32, 0],
-        },
-        {
-          label: 'Terminee',
-          backgroundColor: '#ef4444',
-          data: [0, 0, 0, 0, 0, 0, 55, 60, 36, 31, 0],
-        },
-      ],
-    };
-
-    // Sample data for doughnut chart
-    const donutData = {
-      labels: ['Nouveau', 'En attente', 'En cours', 'Terminee'],
-      datasets: [
-        {
-          data: [254, 99, 243, 101],
-          backgroundColor: ['#34d399', '#3b82f6', '#f59e0b', '#ef4444'],
-          hoverBackgroundColor: ['#10b981', '#2563eb', '#d97706', '#dc2626'],
-        },
-      ],
-    };
-
-    setDonneesBarres(barData);
-    setDonneesBeignet(donutData);
-  }, []);
-
-  // Chart options
-  const optionsBarres = {
+  const options = {
+    responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, position: 'top' },
+      legend: {
+        position: "top",
+        labels: { color: "#FFFFFF" },
+      },
+      title: {
+        display: true,
+        text: "Statistiques des Tâches par jour",
+        color: "#FFFFFF",
+      },
     },
     scales: {
+      x: {
+        ticks: { color: "#FFFFFF" },
+        grid: { color: "rgba(255, 255, 255, 0.2)" },
+      },
       y: {
-        beginAtZero: true,
-        max: 70,
+        ticks: { color: "#FFFFFF" },
+        grid: { color: "rgba(255, 255, 255, 0.2)" },
       },
     },
   };
 
-  const optionsBeignet = {
-    maintainAspectRatio: false,
+  const cardStyle = {
+    background:
+      "linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.15))",
+    backdropFilter: "blur(10px)",
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+    borderRadius: "16px",
+    padding: "24px",
+    color: "#fff",
+    textAlign: "center",
+  };
+
+  const cardTitleStyle = {
+    fontSize: "20px",
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  };
+
+  const cardValueStyle = {
+    fontSize: "40px",
+    fontWeight: "800",
+    marginTop: "12px",
+    color: "#fff",
   };
 
   return (
-    <div className="p-4 w-screen max-w-screen-lg">
-      <h2 className="text-3xl font-bold mb-6">Tableau de Bord</h2>
+    <Box sx={{ flexGrow: 1, pt: 4, px: 2, marginTop: "40px" }}>
+      <Grid container spacing={4}>
+        {/* Task Count Cards */}
+        <Grid item xs={12} sm={6} md={3}>
+          <ButtonBase sx={{ width: "100%" }} onClick={(event) => handleStatusClick("Total", event)}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Typography variant="h6" sx={cardTitleStyle} >
+                  <FaTasks /> Total tâches
+                </Typography>
+                <Typography variant="h4" sx={cardValueStyle}>
+                  {taskCounts.totalTaches}
+                </Typography>
+              </CardContent>
+            </Card>
+          </ButtonBase>
+        </Grid>
 
-     
-      {loading ? (
-        <p>Chargement des données...</p>
-      ) : error ? (
-        <p className="text-red-500">{error}</p>
-      ) : (
-        <>
-          {/* Indicateurs principaux */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div className="bg-white text-black p-6 rounded shadow-lg">
-              <h3 className="text-lg font-semibold">Total Tâches</h3>
-            < FaTasks  className="mr-2"/>  <p className="text-2xl font-bold">{taskCounts.totalTaches}</p>
-            </div>
-            <div className="bg-white text-black p-6 rounded shadow-lg">
-              <h3 className="text-lg font-semibold">Tâches En Attente</h3>
-              <  FaClock  className="mr-2"/>  <p className="text-2xl font-bold">{taskCounts.tachesEnAttente}</p>
-            </div>
-            <div className="bg-white text-black p-6 rounded shadow-lg">
-              <h3 className="text-lg font-semibold">Tâches En Cours</h3>
-              <  FaSpinner  className="mr-2"/>  <p className="text-2xl font-bold">{taskCounts.tachesEnCours}</p>
-            </div>
-            <div className="bg-white text-black p-6 rounded shadow-lg">
-              <h3 className="text-lg font-semibold">Tâches Terminées</h3>
-              < FaCheckCircle className="mr-2"/>  <p className="text-2xl font-bold">{taskCounts.tachesTerminees}</p>
-            </div>
-          </div>
+        <Grid item xs={12} sm={6} md={3}>
+          <ButtonBase sx={{ width: "100%" }} onClick={(event) => handleStatusClick("Nouveau", event)}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Typography variant="h6" sx={cardTitleStyle}>
+                  <FaPlus /> Nouveaux tâches
+                </Typography>
+                <Typography variant="h4" sx={cardValueStyle}>
+                  {taskCounts.tachesEnAttente}
+                </Typography>
+              </CardContent>
+            </Card>
+          </ButtonBase>
+        </Grid>
 
-          {/* Graphiques */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Graphique à barres */}
-            <div className="bg-white p-6 rounded shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Statistique</h3>
-              <div style={{ height: '400px' }}>
-                <Bar data={donneesBarres} options={optionsBarres} />
-              </div>
-            </div>
+        <Grid item xs={12} sm={6} md={3}>
+          <ButtonBase sx={{ width: "100%" }} onClick={(event) => handleStatusClick("En cours", event)}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Typography variant="h6" sx={cardTitleStyle}>
+                  <FaSpinner /> Tâche en cours
+                </Typography>
+                <Typography variant="h4" sx={cardValueStyle}>
+                  {taskCounts.tachesEnCours}
+                </Typography>
+              </CardContent>
+            </Card>
+          </ButtonBase>
+        </Grid>
 
-            {/* Graphique en beignet */}
-            <div className="bg-white p-6 rounded shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Statistique status par jour</h3>
-              <div style={{ height: '400px' }}>
-                <Doughnut data={donneesBeignet} options={optionsBeignet} />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+        <Grid item xs={12} sm={6} md={3}>
+          <ButtonBase sx={{ width: "100%" }}onClick={(event) => handleStatusClick("Terminée", event)}>
+            <Card sx={cardStyle}>
+              <CardContent>
+                <Typography variant="h6" sx={cardTitleStyle}>
+                  <FaCheckCircle /> Tâche terminees
+                </Typography>
+                <Typography variant="h4" sx={cardValueStyle}>
+                  {taskCounts.tachesTerminees}
+                </Typography>
+              </CardContent>
+            </Card>
+          </ButtonBase>
+        </Grid>
+
+        {/* Bar Chart */}
+        <Grid item sx={{ width: "500px" ,marginLeft:'30px'}}>
+          <Card sx={{ ...cardStyle, height: "350px" }}>
+            <CardContent>
+              <Bar data={chartData} options={options} height={300} />
+            </CardContent>
+          </Card>
+        </Grid>
+       {/*formulaire ampisahona an le status*/ }
+       <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        sx={{
+          "& .MuiPaper-root": {
+            backdropFilter: "blur(10px)",
+            backgroundColor: "rgba(255, 255, 255, 0.7)", 
+            border: "1px solid rgba(255, 255, 255, 0.3)", 
+            borderRadius: "8px",
+            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)", 
+          },
+        }}
+      >
+        <Box sx={{ padding: 2 }}>
+          {tasksByStatus.length === 0 ? (
+            <Typography variant="body2">Aucune tâche disponible.</Typography>
+          ) : (
+            tasksByStatus.map((task) => (
+              <Box key={task.Id_tache} sx={{ marginBottom: 1 }}>
+                <Typography variant="body1">{task.Titre_tache}</Typography>
+                <Typography variant="body2" color="#242130">
+                  {task.Description_tache}
+                </Typography>
+              </Box>
+            ))
+          )}
+        </Box>
+      </Popover>
+        {/* Monthly Task Counts */}
+        <Grid sx={{ marginTop: "40px", marginLeft: "100px"}}>
+          <Card sx={cardStyle }  >
+            <CardContent>
+              <Typography variant="h6" sx={cardTitleStyle}>
+                Utilisateur ayant le plus de tâches par mois
+              </Typography>
+              {monthlyTaskCounts.length > 0 ? (
+                monthlyTaskCounts.map((user) => (
+                  <Box
+                    key={user.userName}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    {user.userImage && (
+                      <img
+                        src={`http://localhost:3000${user.userImage}`} 
+                        alt={user.userName}
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          marginRight: "10px",
+                        }}
+                      />
+                    )}
+
+                    <Typography>
+                      {user.userName}: {user.taskCount}
+                    </Typography>
+                  </Box>
+                ))
+              ) : (
+                <Typography>Aucune tâche pour ce mois.</Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 
-export default TableauDeBord;
+export default Dashboard;

@@ -1,286 +1,578 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import Swal from "sweetalert2";
+import {
+  Box,
+  Button,
+  TextField,
+  Modal,
+  Typography,
+  IconButton,
+  CircularProgress,
+  InputAdornment,
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
 import { FaEdit, FaTrash, FaPlus, FaSearch } from "react-icons/fa";
-import axios from 'axios';
+import { frFR } from "@mui/x-data-grid/locales";
 
-function Utilisateur() {
-    const [utilisateurs, setUtilisateurs] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showModal, setShowModal] = useState(false);
-    const [currentUser, setCurrentUser] = useState({
-        id: '',
-        nom: '',
-        email: '',
-        mot_passe: '',
-        image: '',
-        role: ''
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 500, 
+  bgcolor: "background.paper",
+  borderRadius: 1,
+  boxShadow: 24,
+  p: 4,
+};
+
+const Utilisateur = () => {
+  const [utilisateurs, setUtilisateurs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState({
+    id: "",
+    nom: "",
+    email: "",
+    mot_passe: "",
+    image: "",
+    role: "",
+    matricule: "", 
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState({
+    nom: true,
+    email: true,
+    mot_passe: true,
+    image: true,
+    role: true,
+    matricule: true, 
+  });
+  const tableRef = useRef(null);
+
+  useEffect(() => {
+    setLoading(true);
+    axios
+      .get("http://localhost:3000/api/utilisateurs")
+      .then((response) => {
+        const rowsWithId = response.data.map((row) => ({
+          id: row.ID,
+          ...row,
+        }));
+        setUtilisateurs(rowsWithId);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Erreur lors de la récupération des utilisateurs:", error);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
+
+  const handleOpenModal = (
+    utilisateur = {
+      id: "",
+      nom: "",
+      email: "",
+      mot_passe: "",
+      image: "",
+      role: "",
+      matricule: "", 
+    }
+  ) => {
+    setCurrentUser({
+      id: utilisateur.id || "",
+      nom: utilisateur.Nom || "",
+      email: utilisateur.Email || "",
+      mot_passe: utilisateur.Mot_Passe || "",
+      image: utilisateur.Image
+        ? `http://localhost:3000${utilisateur.Image}`
+        : "",
+      role: utilisateur.Role || "",
+      matricule: utilisateur.Matricule || "", 
     });
-    const [imageFile, setImageFile] = useState(null);
-    const tableRef = useRef(null);
+    setImageFile(null);
+    setShowModal(true);
+  };
 
-    useEffect(() => {
-        axios.get('http://localhost:3000/api/utilisateurs')
-            .then(response => {
-                setUtilisateurs(response.data);
-            })
-            .catch(error => console.error('Error fetching utilisateurs:', error));
-    }, []);
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setCurrentUser({
+      id: "",
+      nom: "",
+      email: "",
+      mot_passe: "",
+      image: "",
+      role: "",
+      matricule: "", 
+    });
+    setImageFile(null);
+  };
 
-    const handleSearchChange = (e) => setSearchTerm(e.target.value);
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setCurrentUser((prevState) => ({
+        ...prevState,
+        image: URL.createObjectURL(file),
+      }));
+    }
+  };
 
-    const handleOpenModal = (utilisateur = { id: '', nom: '', email: '', mot_passe: '', image: '', role: '' }) => {
-        setCurrentUser({
-            id: utilisateur.ID || '',
-            nom: utilisateur.Nom || '',
-            email: utilisateur.Email || '',
-            mot_passe: utilisateur.Mot_Passe || '',
-            image: utilisateur.Image ? `http://localhost:3000${utilisateur.Image}` : '',
-            role: utilisateur.Role || ''
-        });
-        setImageFile(null);
-        setShowModal(true);
-    };
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setCurrentUser({
-            id: '',
-            nom: '',
-            email: '',
-            mot_passe: '',
-            image: '',
-            role: ''
-        });
-        setImageFile(null);
-    };
+    if (
+      !currentUser.nom ||
+      !currentUser.email ||
+      !currentUser.mot_passe ||
+      !currentUser.role ||
+      !currentUser.matricule 
+    ) {
+      alert("Veuillez remplir tous les champs");
+      return;
+    }
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setImageFile(file);
-            setCurrentUser(prevState => ({
-                ...prevState,
-                image: URL.createObjectURL(file)
-            }));
+    const formData = new FormData();
+    formData.append("nom", currentUser.nom);
+    formData.append("email", currentUser.email);
+    formData.append("mot_passe", currentUser.mot_passe);
+    formData.append("role", currentUser.role);
+    formData.append("matricule", currentUser.matricule); 
+    if (imageFile) formData.append("image", imageFile);
+
+    const requestUrl = currentUser.id
+      ? `http://localhost:3000/api/utilisateurs/${currentUser.id}`
+      : "http://localhost:3000/api/utilisateurs";
+
+    axios({
+      method: currentUser.id ? "put" : "post",
+      url: requestUrl,
+      data: formData,
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+      .then((response) => {
+        if (response.data.error) {
+          alert("Erreur lors de l'opération");
+        } else {
+          if (currentUser.id) {
+            const updatedUtilisateurs = utilisateurs.map((utilisateur) =>
+              utilisateur.id === currentUser.id
+                ? {
+                    ...response.data,
+                    image: response.data.image || utilisateur.image,
+                  }
+                : utilisateur
+            );
+            setUtilisateurs(updatedUtilisateurs);
+          } else {
+            const newUser = { ...response.data, image: response.data.image };
+            setUtilisateurs([...utilisateurs, newUser]);
+          }
+          handleCloseModal();
+          scrollToUtilisateur(currentUser.id);
         }
-    };
+      })
+      .catch((error) => console.error("Erreur:", error));
+  };
 
-    const handleSubmit = (event) => {
-        event.preventDefault();
-
-        if (!currentUser.nom || !currentUser.email || !currentUser.mot_passe || !currentUser.role) {
-            alert("Veuillez remplir tous les champs");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('nom', currentUser.nom);
-        formData.append('email', currentUser.email);
-        formData.append('mot_passe', currentUser.mot_passe);
-        formData.append('role', currentUser.role);
-        if (imageFile) formData.append('image', imageFile);
-
-        const requestUrl = currentUser.id
-            ? `http://localhost:3000/api/utilisateurs/${currentUser.id}`
-            : 'http://localhost:3000/api/utilisateurs';
-
-        axios({
-            method: currentUser.id ? 'put' : 'post',
-            url: requestUrl,
-            data: formData,
-            headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        .then(response => {
+  const handleDeleteUtilisateur = (id) => {
+    Swal.fire({
+      title: "Supprimer l'utilisateur",
+      text: "Voulez-vous vraiment supprimer cet utilisateur?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        axios
+          .delete(`http://localhost:3000/api/utilisateurs/${id}`)
+          .then((response) => {
             if (response.data.error) {
-                alert('Erreur lors de l\'opération');
+              Swal.fire("Erreur", "Erreur lors de la suppression de l'utilisateur", "error");
             } else {
-                if (currentUser.id) {
-                    const updatedUtilisateurs = utilisateurs.map(utilisateur =>
-                        utilisateur.ID === currentUser.id ? { ...response.data, image: response.data.image || utilisateur.image } : utilisateur
-                    );
-                    setUtilisateurs(updatedUtilisateurs);
-                } else {
-                    const newUser = { ...response.data, image: response.data.image };
-                    setUtilisateurs([...utilisateurs, newUser]);
-                }
-                handleCloseModal();
-                scrollToUtilisateur(currentUser.id);
+              setUtilisateurs(
+                utilisateurs.filter((utilisateur) => utilisateur.id !== id)
+              );
+              Swal.fire("Supprimé", "L'utilisateur a été supprimé.", "success");
             }
-        })
-        .catch(error => console.error('Error:', error));
-    };
+          })
+          .catch((error) => {
+            console.error("Erreur:", error);
+            Swal.fire("Erreur", "Erreur lors de la suppression de l'utilisateur", "error");
+          });
+      }
+    });
+  };
 
-    const handleDeleteUtilisateur = (id) => {
-        axios.delete(`http://localhost:3000/api/utilisateurs/${id}`)
-            .then(response => {
-                if (response.data.error) {
-                    alert('Erreur lors de la suppression de l\'utilisateur');
-                } else {
-                    setUtilisateurs(utilisateurs.filter(utilisateur => utilisateur.ID !== id));
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    };
+  const handleColumnVisibilityChange = (column) => {
+    setColumnVisibility((prevState) => ({
+      ...prevState,
+      [column]: !prevState[column],
+    }));
+  };
 
-    const scrollToUtilisateur = (utilisateurId) => {
-        if (tableRef.current) {
-            const utilisateurRow = tableRef.current.querySelector(`tr[data-id='${utilisateurId}']`);
-            if (utilisateurRow) {
-                utilisateurRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+  const scrollToUtilisateur = (utilisateurId) => {
+    const row = utilisateurs.find((user) => user.id === utilisateurId);
+    if (row) {
+      const index = utilisateurs.indexOf(row);
+      tableRef.current.scrollTo({ top: index * 48, behavior: "smooth" });
+    }
+  };
+
+  const filteredUtilisateurs = utilisateurs.filter(
+    (utilisateur) =>
+      utilisateur.Nom &&
+      utilisateur.Nom.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const columns = [ 
+    { field: "Nom", headerName: "Nom", flex: 1, hide: !columnVisibility.nom },
+    {
+      field: "Email",
+      headerName: "Email",
+      flex: 1,
+      hide: !columnVisibility.email,
+    },
+    {
+      field: "Mot_Passe",
+      headerName: "Mot de Passe",
+      flex: 1,
+      hide: !columnVisibility.mot_passe,
+    },
+    {
+      field: "Matricule",
+      headerName: "Matricule", 
+      flex: 1,
+      hide: !columnVisibility.matricule,
+    },
+    {
+      field: "Image",
+      headerName: "Profil",
+      flex: 1,
+      hide: !columnVisibility.image,
+      renderCell: (params) =>
+        params.value ? (
+          <img
+            src={`http://localhost:3000${params.value}`}
+            alt={params.row.Nom}
+            style={{ height: 40, width: 40, borderRadius: "50%" }}
+          />
+        ) : null,
+    },
+    {
+      field: "Role",
+      headerName: "Rôle",
+      flex: 1,
+      hide: !columnVisibility.role,
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      flex: 1,
+      renderCell: (params) => (
+        <Box display="flex" justifyContent="center" >
+         <IconButton onClick={() => handleOpenModal(params.row)}>
+          <FaEdit className="text-gray-400" size={16} title="Modifier" />
+        </IconButton>
+        <IconButton onClick={() => handleDeleteUtilisateur(params.row.id)}>
+          <FaTrash className="text-gray-400" size={16} title="Supprimer" />
+        </IconButton>
+
+        </Box>
+      ),
+    },
+  ];
+
+  return (
+    <Box m="20px" marginTop='100px' marginLeft="90px">
+      <Box 
+      display="flex"
+        mb="20px"
+        p={2}
+        sx={{
+          backdropFilter: "blur(4px)",
+          boxShadow: "0px 1px 10px rgba(0, 0, 0, 0.1)",
+          borderRadius: "10px",
+         marginLeft:'-80px'
+        }}
+      >
+        <TextField
+  variant="outlined"
+  size="small"
+  placeholder="Rechercher un utilisateur"
+  value={searchTerm}
+  onChange={handleSearchChange}
+  InputProps={{
+    startAdornment: (
+      <InputAdornment position="start">
+        <FaSearch color="#fff" />
+      </InputAdornment>
+    ),
+    sx: {
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#fff",
+      },
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#ffffff99",
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#ffffffcc",
+      },
+    },
+  }}
+  sx={{
+    borderRadius: '20px',
+    color: "#fff",
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slight transparent background
+    '& .MuiInputBase-input': {
+      color: '#fff', // Input text color
+    },
+    '& .MuiOutlinedInput-root': {
+      '& fieldset': {
+        borderColor: '#fff',
+      },
+      '&:hover fieldset': {
+        borderColor: '#ffffff99',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#ffffffcc',
+      },
+    },
+    '&::placeholder': {
+      color: '#ffffffcc', // Placeholder text color
+    },
+  }}
+/>
+
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ marginLeft: "700px" }}
+          startIcon={<FaPlus />}
+          onClick={() => handleOpenModal()}
+        >
+          Ajouter Utilisateur
+        </Button>
+      </Box>
+
+      {/* <Box
+        display="flex"
+        mb="20px"
+        p={2}
+        sx={{
+          backdropFilter: "blur(4px)",
+          boxShadow: "0px 1px 10px rgba(0, 0, 0, 0.1)",
+          borderRadius: "10px",
+        }}
+      >
+        {["nom", "email", "mot_passe", "image", "role", "matricule"].map(
+          (column) => (
+            <Button
+              key={column}
+              variant={columnVisibility[column] ? "contained" : "outlined"}
+              color="primary"
+              sx={{ marginLeft: "10px" }}
+              onClick={() => handleColumnVisibilityChange(column)}
+            >
+              {column}
+            </Button>
+          )
+        )}
+      </Box> */}
+
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <Box height={400} ref={tableRef}>
+          <DataGrid
+            rows={filteredUtilisateurs}
+            columns={columns}
+            pageSize={5}
+            localeText={frFR.components.MuiDataGrid.defaultProps.localeText}
+            disableSelectionOnClick
+            sx={{
+              backdropFilter: "blur(10px)",
+              background: "rgba(255, 255, 255, 0.8)",
+              boxShadow: "0px 1px 10px rgba(0, 0, 0, 0.1)",
+              borderRadius: "10px",
+              width:'1250px',
+              marginLeft:'-80px'
+            }}
+          />
+        </Box>
+      )}
+
+      {/* Modal for Add/Edit User */}
+      <Modal open={showModal} onClose={handleCloseModal}>
+  <Box
+    sx={{
+      ...modalStyle,
+      backgroundColor: "rgba(255, 255, 255, 0.1)", 
+      backdropFilter: "blur(10px)", 
+      borderRadius: "15px", 
+      border: "1px solid rgba(255, 255, 255, 0.2)", 
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.25)", 
+      padding: "20px", 
+      width: "400px", 
+      margin: "auto", 
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+    }}
+  >
+    <Typography variant="h6" mb={2} color="#fff">
+      {currentUser.id ? "Modifier l'utilisateur" : "Ajouter un utilisateur"}
+    </Typography>
+    <form onSubmit={handleSubmit}>
+      <TextField
+        margin="normal"
+        fullWidth
+        label="Nom"
+        value={currentUser.nom}
+        onChange={(e) =>
+          setCurrentUser((prevState) => ({
+            ...prevState,
+            nom: e.target.value,
+          }))
         }
-    };
-    
+        sx={{
+          backgroundColor: "rgba(255, 255, 255, 0.2)", // Slight transparency on inputs
+          borderRadius: "10px",
+          "& .MuiOutlinedInput-root": {
+            "& fieldset": {
+              borderColor: "rgba(255, 255, 255, 0.5)", // Light border for inputs
+            },
+            "&:hover fieldset": {
+              borderColor: "rgba(255, 255, 255, 0.8)",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "#fff",
+            },
+          },
+        }}
+      />
+      <TextField
+        margin="normal"
+        fullWidth
+        label="Email"
+        value={currentUser.email}
+        onChange={(e) =>
+          setCurrentUser((prevState) => ({
+            ...prevState,
+            email: e.target.value,
+          }))
+        }
+        sx={{
+          backgroundColor: "rgba(255, 255, 255, 0.2)",
+          borderRadius: "10px",
+        }}
+      />
+      <TextField
+        margin="normal"
+        fullWidth
+        type="password"
+        label="Mot de Passe"
+        value={currentUser.mot_passe}
+        onChange={(e) =>
+          setCurrentUser((prevState) => ({
+            ...prevState,
+            mot_passe: e.target.value,
+          }))
+        }
+        sx={{
+          backgroundColor: "rgba(255, 255, 255, 0.2)",
+          borderRadius: "10px",
+          '&::placeholder': {
+         color: '#ffffffcc', // Placeholder text color
+        },
+        }}
+      />
+      <TextField
+        margin="normal"
+        fullWidth
+        label="Matricule"
+        value={currentUser.matricule}
+        onChange={(e) =>
+          setCurrentUser((prevState) => ({
+            ...prevState,
+            matricule: e.target.value,
+          }))
+        }
+        sx={{
+          backgroundColor: "rgba(255, 255, 255, 0.2)",
+          borderRadius: "10px",
+          color:'#fff'
+        }}
+      />
+      <TextField
+        margin="normal"
+        fullWidth
+        label="Role"
+        value={currentUser.role}
+        onChange={(e) =>
+          setCurrentUser((prevState) => ({
+            ...prevState,
+            role: e.target.value,
+          }))
+        }
+        sx={{
+          backgroundColor: "rgba(255, 255, 255, 0.2)",
+          borderRadius: "10px",
+          color:'#fff'
+        }}
+      />
+      <Box mt={2}>
+        <Typography variant="body2" gutterBottom color="#fff">
+          Image de Profil:
+        </Typography>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+        />
+        {currentUser.image && (
+          <img
+            src={currentUser.image}
+            alt="Profil"
+            style={{
+              marginTop: "10px",
+              width: "100px",
+              height: "100px",
+              borderRadius: "50%",
+              border: "2px solid rgba(255, 255, 255, 0.5)", // Light border for the image
+              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)", // Adding shadow to the image
+            }}
+          />
+        )}
+      </Box>
 
+      <Box mt={3} display="flex" justifyContent="flex-end">
+        <Button variant="contained" color="primary" type="submit" sx={{background:'#03dac5'}}>
+          {currentUser.id ? "Modifier" : "Ajouter"}
+        </Button>
+        <Button
+          variant="outlined"
+          color="#fff"
+          onClick={handleCloseModal}
+          sx={{ marginLeft: "10px",background:'#bb86fc',border:'1px solid #bb86fc',color:'#fff' }}
+        >
+          Annuler
+        </Button>
+      </Box>
+    </form>
+  </Box>
+</Modal>
 
-    const filteredUtilisateurs = utilisateurs.filter(utilisateur => utilisateur.Nom && utilisateur.Nom.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    return (
-        <div className="container mx-auto mt-20 px-4 -ml-20 w-screen max-w-screen-lg">
-            <div className=" text-center py-4  mb-4 w-screen max-w-screen-lg">
-                <h1 className="text-2xl font-semibold text-black">Liste des Utilisateurs Enregistrés</h1>
-            </div>
-
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 space-y-4 md:space-y-0">
-                <div className="flex items-center border border-gray-300 rounded">
-                    <FaSearch className="text-gray-500 mr-2 ml-3" />
-                    <input
-                        type="text"
-                        placeholder="Rechercher par nom..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        className="w-full bg-transparent outline-none p-2 text-gray-700"
-                    /> 
-                </div>
-                <button 
-                   className="bg-cyan-500 hover:bg-blue-700 text-black font-bold py-2 px-4 rounded flex items-center"
-                    onClick={handleOpenModal}
-                >
-                    <FaPlus className="mr-2" /> Ajouter Utilisateur
-                </button>
-            </div>
-
-<div className="bg-white shadow overflow-hidden border-b border-gray-200 rounded-lg">
-  <table ref={tableRef} className="min-w-full divide-y divide-gray-200">
-    <thead className="bg-cyan-500">
-      <tr>
-        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Nom</th>
-        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Email</th>
-        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Mot de Passe</th>
-        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Profile</th>
-        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Role</th>
-        <th className="px-2 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
-      </tr>
-    </thead>
-    <tbody className="bg-white divide-y divide-gray-200 ">
-      {filteredUtilisateurs.map((utilisateur) => (
-        <tr key={utilisateur.ID} data-id={utilisateur.ID}>
-          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{utilisateur.Nom}</td>
-          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{utilisateur.Email}</td>
-          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{utilisateur.Mot_Passe}</td>
-          <td className="px-4 py-2 whitespace-nowrap text-center">
-            {utilisateur.Image && (
-              <img
-                src={`http://localhost:3000${utilisateur.Image}`}
-                alt={utilisateur.Nom}
-                className="h-10 w-10 object-cover rounded-full mx-auto"
-              />
-            )}
-          </td>
-          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{utilisateur.Role}</td>
-          <td className="px-2 py-2 whitespace-nowrap text-sm font-medium flex justify-center">
-            <button
-              className="bg-blue-600 text-white px-2 py-1 rounded mr-2 hover:bg-blue-700 transition duration-200 ease-in-out"
-              onClick={() => handleOpenModal(utilisateur)}
-            >
-              <FaEdit />
-            </button>
-            <button
-              className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition duration-200 ease-in-out"
-              onClick={() => handleDeleteUtilisateur(utilisateur.ID)}
-            >
-              <FaTrash />
-            </button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
-
-            {showModal && (
-                <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
-                        <h2 className="text-2xl font-bold mb-4">{currentUser.id ? 'Modifier' : 'Ajouter'} Utilisateur</h2>
-                        <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
-                                <label className="block text-gray-700">Nom</label>
-                                <input
-                                    type="text"
-                                    value={currentUser.nom}
-                                    onChange={(e) => setCurrentUser({ ...currentUser, nom: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700">Email</label>
-                                <input
-                                    type="email"
-                                    value={currentUser.email}
-                                    onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700">Mot de Passe</label>
-                                <input
-                                    type="password"
-                                    value={currentUser.mot_passe}
-                                    onChange={(e) => setCurrentUser({ ...currentUser, mot_passe: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700">Profile</label>
-                                <input type="file" onChange={handleImageChange} className="w-full" />
-                                {currentUser.image && (
-                                    <img
-                                        src={currentUser.image}
-                                        alt="Image Utilisateur"
-                                        className="mt-2 h-20 w-20 object-cover rounded-full"
-                                    />
-                                )}
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-gray-700">Role</label>
-                                <input
-                                    type="text"
-                                    value={currentUser.role}
-                                    onChange={(e) => setCurrentUser({ ...currentUser, role: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                                />
-                            </div>
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    className="bg-gray-400 text-white px-4 py-2 rounded mr-2"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="bg-cyan-500 text-white px-4 py-2 rounded"
-                                >
-                                    {currentUser.id ? 'Modifier' : 'Ajouter'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
+    </Box>
+  );
+};
 
 export default Utilisateur;

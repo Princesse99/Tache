@@ -102,17 +102,17 @@ passport.use(
   "local",
   new LocalStrategy(
     {
-      usernameField: "email",
+      usernameField: "matricule",
       passwordField: "password",
       passReqToCallback: true,
     },
-    async (req, email, password, done) => {
+    async (req, matricule, password, done) => {
       // connaitre le rpole depuis req.body
       const role = req.body.role;
       try {
         db.query(
-          "SELECT * FROM utilisateur WHERE Email = ? AND Mot_Passe = ? AND Role = ?",
-          [email, password, role],
+          "SELECT * FROM utilisateur WHERE Matricule = ? AND Mot_Passe = ? AND Role = ?",
+          [matricule, password, role],
           (err, resultat) => {
             if (err) return done(err);
 
@@ -142,13 +142,16 @@ app.post("/api/authentification", (req, res, next) => {
       return next(err);
     }
     if (!user) {
-      return res.json({ message: "authentication failed" });
+      return res.json({ message: "Authentication failed" });
     }
+
+    // Token creation
     const token = jwt.sign({ userId: user.ID }, jwtsecret, {
       expiresIn: "24h",
     });
+
     return res.send({
-      message: "authentification succeded",
+      message: "Authentication succeeded",
       token: token,
       user: user,
       success: true,
@@ -156,10 +159,39 @@ app.post("/api/authentification", (req, res, next) => {
   })(req, res, next);
 });
 
+// Passport local strategy without role checking
+passport.use(
+  "local",
+  new LocalStrategy(
+    {
+      usernameField: "matricule",
+      passwordField: "password",
+      passReqToCallback: true,
+    },
+    async (req, matricule, password, done) => {
+      try {
+        db.query(
+          "SELECT * FROM utilisateur WHERE Matricule = ? AND Mot_Passe = ?",
+          [matricule, password],
+          (err, resultat) => {
+            if (err) return done(err);
+
+            const user = resultat[0];
+            if (!user) {
+              return done(null, false, {
+                message: "Incorrect authentication",
+              });
+            }
+            return done(null, user); 
+          }
+        );
+      } catch (e) {
+        return done(e);
+      }
+    }
+  )
+);
 // fin authentification
-
-
-
 
 // Vérifier si l'utilisateur administrateur existe
 const checkAdmin = () => {
@@ -171,8 +203,8 @@ const checkAdmin = () => {
     }
     if (results.length === 0) {
       // Créer le compte administrateur par défaut
-      const adminSql = "INSERT INTO utilisateur (Nom, Email, Mot_Passe, Role) VALUES (?, ?, ?, ?)";
-      db.query(adminSql, ['Admin', 'admin@example.com', 'adminpassword', 'Admin'], (err, result) => {
+      const adminSql = "INSERT INTO utilisateur (Nom, Email, Mot_Passe, Role,Matricule) VALUES (?, ?, ?, ?,?)";
+      db.query(adminSql, ['Admin', 'admin@example.com', 'adminpassword', 'Admin',58036], (err, result) => {
         if (err) {
           console.error("Error creating admin user:", err);
           return;
@@ -227,12 +259,11 @@ app.put("/api/admin/change-password", (req, res) => {
 });
 
 app.post("/api/utilisateurs", upload.single("image"), (req, res) => {
-  const { nom, email, mot_passe, role } = req.body;
+  const { nom, email, mot_passe, role, matricule } = req.body;  
   const image = req.file ? `/uploads/${req.file.filename}` : "";
 
-  const sql =
-    "INSERT INTO utilisateur (Nom, Email, Mot_Passe, Image, Role) VALUES (?, ?, ?, ?, ?)";
-  db.query(sql, [nom, email, mot_passe, image, role], (err, result) => {
+  const sql = "INSERT INTO utilisateur (Nom, Email, Mot_Passe, Image, Role, Matricule) VALUES (?, ?, ?, ?, ?, ?)";
+  db.query(sql, [nom, email, mot_passe, image, role, matricule], (err, result) => {
     if (err) {
       console.error("Error inserting user:", err);
       return res.status(500).json({ error: err.message });
@@ -244,6 +275,7 @@ app.post("/api/utilisateurs", upload.single("image"), (req, res) => {
     });
   });
 });
+
 
 app.get("/api/utilisateurs", (req, res) => {
   const sql = "SELECT * FROM utilisateur";
@@ -258,12 +290,11 @@ app.get("/api/utilisateurs", (req, res) => {
 
 app.put("/api/utilisateurs/:id", upload.single("image"), (req, res) => {
   const { id } = req.params;
-  const { nom, email, mot_passe, role } = req.body;
+  const { nom, email, mot_passe, role, matricule } = req.body;  
   const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
 
-  const sql =
-    "UPDATE utilisateur SET Nom = ?, Email = ?, Mot_Passe = ?, Image = ?, Role = ? WHERE ID = ?";
-  db.query(sql, [nom, email, mot_passe, image, role, id], (err, result) => {
+  const sql = "UPDATE utilisateur SET Nom = ?, Email = ?, Mot_Passe = ?, Image = ?, Role = ?, Matricule = ? WHERE ID = ?";
+  db.query(sql, [nom, email, mot_passe, image, role, matricule, id], (err, result) => {
     if (err) {
       console.error("Error updating user:", err);
       return res.status(500).json({ error: err.message });
@@ -271,6 +302,7 @@ app.put("/api/utilisateurs/:id", upload.single("image"), (req, res) => {
     res.json({ message: "Utilisateur modifié avec succès", image });
   });
 });
+
 
 app.delete("/api/utilisateurs/:id", (req, res) => {
   const { id } = req.params;
@@ -283,7 +315,7 @@ app.delete("/api/utilisateurs/:id", (req, res) => {
     res.json({ message: "Utilisateur supprimé avec succès" });
   });
 });
-
+///============Requete pour les taches=================///
 // Task Routes
 app.get("/api/tasks", (req, res) => {
   const sql = `
@@ -311,6 +343,18 @@ app.post("/api/tasks", (req, res) => {
     res.status(201).json({ ...task, Id_tache: result.insertId });
   });
 });
+app.post("/api/task", (req, res) => {
+  const { Titre_tache, Description_tache, Echeance_tache, Date_Fin, assignedUser } = req.body;
+  const sql = "INSERT INTO task (Titre_tache, Description_tache, Echeance_tache, Date_Fin, ID) VALUES (?, ?, ?, ?, ?)";
+  db.query(sql, [Titre_tache, Description_tache, Echeance_tache, Date_Fin, assignedUser], (err, result) => {
+    if (err) {
+      console.error("Error adding task:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json({ Id_tache: result.insertId, Titre_tache, Description_tache, Echeance_tache, Date_Fin, assignedUser });
+  });
+});
+
 // Task Routes
 app.get("/api/tasks/user/:userId", (req, res) => {
   const { userId } = req.params;
@@ -339,23 +383,35 @@ app.put("/api/tasks/:id", (req, res) => {
 
 app.delete("/api/tasks/:id", (req, res) => {
   const { id } = req.params;
-  const sql = "DELETE FROM task WHERE Id_tache = ?";
-  db.query(sql, [id], (err, result) => {
+
+  // Supprimer les notifications associées
+  const deleteNotificationsSql = "DELETE FROM notification WHERE Id_tache = ?";
+  db.query(deleteNotificationsSql, [id], (err) => {
     if (err) {
-      console.error("Error deleting task:", err);
+      console.error("Erreur lors de la suppression des notifications :", err);
       return res.status(500).json({ error: err.message });
     }
-    res.status(204).send();
+
+    // Supprimer la tâche
+    const deleteTaskSql = "DELETE FROM task WHERE Id_tache = ?";
+    db.query(deleteTaskSql, [id], (err) => {
+      if (err) {
+        console.error("Erreur lors de la suppression de la tâche :", err);
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(204).send();
+    });
   });
 });
+
 
 app.get("/api/taskCounts", (req, res) => {
   const sql = `
         SELECT
             (SELECT COUNT(*) FROM task) AS totalTaches,
             (SELECT COUNT(*) FROM task WHERE Status = 'En cours') AS tachesEnCours,
-            (SELECT COUNT(*) FROM task WHERE Status = 'Terminer') AS tachesTerminees,
-            (SELECT COUNT(*) FROM task WHERE Status = 'En attente') AS tachesEnAttente
+            (SELECT COUNT(*) FROM task WHERE Status = 'Terminée') AS tachesTerminees,
+            (SELECT COUNT(*) FROM task WHERE Status = 'Nouveau') AS tachesEnAttente
     `;
 
   db.query(sql, (err, results) => {
@@ -367,33 +423,93 @@ app.get("/api/taskCounts", (req, res) => {
   });
 });
 //statistique
+app.get("/api/dailyTaskStats", (req, res) => {
+  const sql = `
+    SELECT
+        DATE(Echeance_tache) as date,
+        Status,
+        COUNT(*) as count
+    FROM task
+    WHERE DATE(Echeance_tache) = CURDATE()
+    GROUP BY Status
+    ORDER BY Status ASC
+  `;
+  
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching daily task stats:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(results);
+  });
+  
+});
+//count utilisateur
+app.get("/api/tasks/monthly", (req, res) => {
+  const minTaskCount = 1; // Set the minimum number of tasks to filter
+  const sql = `
+    SELECT u.Nom as userName, u.Image as userImage, COUNT(t.Id_tache) as taskCount
+    FROM task t
+    LEFT JOIN utilisateur u ON t.ID = u.ID
+    WHERE MONTH(t.Echeance_tache) = MONTH(CURRENT_DATE())
+    AND YEAR(t.Echeance_tache) = YEAR(CURRENT_DATE())
+    GROUP BY u.Nom, u.Image
+    HAVING COUNT(t.Id_tache) > ?
+  `;
+
+  db.query(sql, [minTaskCount], (err, results) => {
+    if (err) {
+      console.error("Error fetching monthly task counts:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(results);
+  });
+});
+// Fetch tasks by status
+app.get("/api/tasks/status/:status", (req, res) => {
+  const { status } = req.params;
+  const sql = "SELECT * FROM task WHERE Status = ?";
+  
+  db.query(sql, [status], (err, result) => {
+    if (err) {
+      console.error("Error fetching tasks by status:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(result);
+  });
+});
+
 
 //notificat
 app.post("/api/create-notification", (req, res) => {
-  const { Id_tache, tache, utilisateur, date, id_user } = req.body;
-  console.log("arrivage de requete");
-  const message = `utilisateur ${utilisateur} a executer la tache ${tache} `;
+  const { Id_tache, tache, utilisateur, date, id_user, status } = req.body;
+  let newStatus;
+  
+  // Determine the new status based on the current status
+  if (status === "Nouveau") {
+    newStatus = "En cours";
+  } else if (status === "En cours") {
+    newStatus = "Terminée";
+  } else {
+    return res.status(400).send({ message: "Cannot update a completed task." });
+  }
 
-  const sql =
-    "INSERT INTO `notification`( `message`, `ID`, `Id_tache`) VALUES (?, ?, ?)";
+  const message = `utilisateur ${utilisateur} a exécuté la tâche ${tache} avec status ${newStatus}`;
+
+  const sql = "INSERT INTO `notification`( `message`, `ID`, `Id_tache`) VALUES (?, ?, ?)";
   db.query(sql, [message, id_user, Id_tache], (err, result) => {
     if (err) {
       console.log("Error", err);
-      return res.status(500).send(JSON.stringify({ err: err.message }));
+      return res.status(500).send({ err: err.message });
     }
 
-    const sql2 =
-      "UPDATE `task` SET `Status`='En cours' WHERE `Id_tache`='" +
-      Id_tache +
-      "'";
-    db.query(sql2, (err, result2) => {
+    const sql2 = "UPDATE `task` SET `Status` = ? WHERE `Id_tache` = ?";
+    db.query(sql2, [newStatus, Id_tache], (err, result2) => {
       if (err) {
         console.log("Error", err);
-        return res.status(500).send(JSON.stringify({ err: err.message }));
+        return res.status(500).send({ err: err.message });
       }
-      return res
-        .status(200)
-        .send(JSON.stringify({ message: "Validation", result: result2[0] }));
+      return res.status(200).send({ message: "Validation successful", newStatus });
     });
   });
 });
@@ -417,8 +533,7 @@ app.get("/api/all-notification", (req, res) => {
 
 app.post("/api/set-read", (req, res) => {
   const Id_not = req.body.Id_not;
-  const sql =
-    "update notification set is_read=1 where `Id_not`='" + Id_not + "'";
+  const sql = "UPDATE notification SET is_read=1 WHERE `Id_not`='" + Id_not + "'";
 
   db.query(sql, (err, result) => {
     if (err) {
@@ -430,8 +545,23 @@ app.post("/api/set-read", (req, res) => {
     return res.status(200).send(JSON.stringify({ message: true }));
   });
 });
-
-
+app.get("/api/tasks/gantt/:userId", (req, res) => {
+  const { userId } = req.params;
+  
+  const sql = `
+    SELECT ID, Titre_tache, Description_tache, Echeance_tache AS start, Date_Fin AS end, Status
+    FROM task
+    WHERE ID = ?
+  `;
+  
+  db.query(sql, [userId], (err, result) => {
+    if (err) {
+      console.error("Error fetching Gantt data:", err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(result);
+  });
+});
 
 // Start server
 server.listen(3000, () => {

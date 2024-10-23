@@ -1,0 +1,34 @@
+/* styles.css */
+/* styles.css */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.1); /* Adjust transparency */
+  backdrop-filter: blur(20px); /* Blur effect */
+  border-radius: 16px; /* Rounded corners */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Shadow for depth */
+}
+body {
+  background-color: #1C2237; /* Fallback background color */
+  background-image: url('/public/imagT.png'); /* Replace with your image path */
+  background-size: cover; /* Cover the entire viewport */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+}
+.glass {
+  background: rgba(255, 255, 255, 0.1); /* White background with transparency */
+  border-radius: 15px; /* Rounded corners */
+  backdrop-filter: blur(10px); /* Blur effect */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Optional border */
+}
+
+.sidebar {
+  width: 240px; /* Sidebar width */
+  height: 100vh; /* Full height */
+  padding-top: 20px; /* Padding at the top */
+  margin-top: 30px;
+}
+
+
+
+
+

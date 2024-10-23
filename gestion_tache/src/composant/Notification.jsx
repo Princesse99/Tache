@@ -1,16 +1,16 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import {  FaEye } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
 import { format, parseISO } from "date-fns"; // Import parseISO to handle ISO date strings
+import { Card, CardContent, IconButton, Typography, Stack, Button } from "@mui/material";
+import { Notifications as NotificationsIcon } from "@mui/icons-material";
 
 const Notification = () => {
   const [allNotifications, setAllNotifications] = useState([]);
 
   const fetchNotifications = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:3000/api/all-notification"
-      );
+      const response = await axios.get("http://localhost:3000/api/all-notification");
       if (response.status === 200) {
         setAllNotifications(response.data.result);
       }
@@ -29,7 +29,7 @@ const Notification = () => {
         Id_not: notificationId,
       });
       if (response.status === 200) {
-        alert("Notification marquer deja vu.");
+        alert("Notification marked as read.");
         fetchNotifications();
       }
     } catch (error) {
@@ -39,42 +39,42 @@ const Notification = () => {
 
   const formatDate = (dateString) => {
     try {
-      // Parse the ISO date string
       const date = parseISO(dateString);
-      // Format the date
       return format(date, "dd MMMM yyyy à HH:mm");
     } catch (error) {
       console.error("Error formatting date:", error);
-      return "Invalid Date"; // Fallback if there's an error
+      return "Invalid Date";
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10">
+    <Stack spacing={2} sx={{ maxWidth: 600, mx: "auto", mt: 10 }}>
       {allNotifications.length > 0 ? (
         allNotifications.map((notification, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between bg-white p-4 mb-4 rounded-lg shadow-md"
-          >
-            <p className="text-gray-700 font-light">
-              {notification.message}{" "}
-              <span className="text-gray-500">
-                le {formatDate(notification.Date)}
-              </span>
-            </p>
-            <button
-              className="bg-cyan-500 hover:bg-blue-700 text-black font-semibold py-2 px-4 rounded flex items-center"
+          <Card key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <CardContent>
+              <Typography variant="body2" color="textSecondary">
+                {notification.message}
+                <br />
+                <Typography variant="caption" color="textSecondary">
+                  le {formatDate(notification.Date)}
+                </Typography>
+              </Typography>
+            </CardContent>
+            <IconButton
+              sx={{ color: 'blue' }}
               onClick={() => markAsRead(notification.Id_not)}
             >
-              <FaEye  />
-            </button>
-          </div>
+              <FaEye />
+            </IconButton>
+          </Card>
         ))
       ) : (
-        <p className="text-center text-gray-500">No notifications available.</p>
+        <Typography variant="body2" color="textSecondary" textAlign="center">
+          No notifications available.
+        </Typography>
       )}
-    </div>
+    </Stack>
   );
 };
 

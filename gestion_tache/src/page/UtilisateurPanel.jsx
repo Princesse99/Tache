@@ -1,122 +1,240 @@
-//////////////================================par manjaka============================//////////////////////////
 import React, { useState, useEffect } from "react";
-import { FaHome, FaTasks, FaSignOutAlt } from "react-icons/fa";
 import axios from "axios";
 import { useNavigate, Link, Outlet } from "react-router-dom";
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Badge,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  CssBaseline,
+  Box,
+  Typography,
+  Divider,
+  Avatar,
+  Menu,
+  MenuItem,
+  useMediaQuery,
+  ThemeProvider,
+  createTheme,
+} from "@mui/material";
+import {
+  Home,
+  TaskAlt,
+  CalendarToday,
+  AccountCircle,
+  Logout,
+  Menu as MenuIcon,
+} from "@mui/icons-material";
 import useSignOut from "react-auth-kit/hooks/useSignOut";
-import useAuthUser from "react-auth-kit/hooks/useAuthUser";
-const link = "http://localhost:3000";
-const UtilisateurPanel = () => {
-  const user = useAuthUser();
-  const { image, nom, userId } = user;
+import Swal from "sweetalert2";
 
-  const signOut = useSignOut();
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+const drawerWidth = 240;
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    background: {
+      default: '#1C2237',
+      paper: '#2A314A',
+    },
+    text: {
+      primary: '#FFFFFF',
+      secondary: '#9E9E9E',
+    },
+    primary: {
+      main: '#14BDAC',
+    },
+    secondary: {
+      main: '#F05E72',
+    },
+  },
+});
+
+const UtilisateurPanel = () => {
   const [taskCounts, setTaskCounts] = useState({
     totalTaches: 0,
     tachesEnCours: 0,
     tachesEnAttente: 0,
     tachesTerminees: 0,
   });
-
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const open = Boolean(anchorEl);
+  const signOut = useSignOut();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery("(max-width:600px)");
+
+  const user = {
+    image: "profileImageURL", 
+    nom: "Nom d'Utilisateur", 
+    userId: 1 
+  }; 
 
   useEffect(() => {
     const fetchTaskCounts = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:3000/api/taskCounts?userId=${userId}`
-        );
+        const response = await axios.get(`http://localhost:3000/api/taskCounts?userId=${user.userId}`);
         setTaskCounts(response.data);
       } catch (error) {
         console.error("Error fetching task counts:", error);
       }
     };
     fetchTaskCounts();
-  }, [userId]);
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  }, [user.userId]);
 
   const handleLogout = () => {
-    signOut();
-    window.location.reload();
-    navigate("/"); // Redirect to the login page
+    Swal.fire({
+      title: "Se déconnecter?",
+      text: "Voulez-vous vraiment vous déconnecter?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "OUI",
+      cancelButtonText: "NON",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        signOut();
+        navigate("/");
+        window.location.reload(); // Optional page refresh
+      }
+    });
   };
 
-  return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside
-        className={`w-64 bg-cyan-500 text-white fixed top-0 left-0 h-full shadow-lg transition-transform duration-300 ${
-          isSidebarVisible ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="p-6 flex flex-col h-full">
-          <h1 className="text-xl font-bold mb-6">Page Utilisateur</h1>
-          <nav className="flex flex-col flex-grow">
-            <Link
-              to="/" // Update with your actual route
-              className="flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700"
-            >
-              <FaHome className="mr-2" /> Dashboard
-            </Link>
-            <Link
-              to="/tasks" // Update with your actual route
-              className="flex items-center py-4 px-4 mb-2 rounded hover:bg-green-700"
-            >
-              <FaTasks className="mr-2" /> Ma Tache
-            </Link>
-            <Link
-              to="/profile" // Update with your actual route
-              className="flex items-center py-4 px-4 rounded hover:bg-green-700"
-            >
-              <img
-                src={
-                  image
-                    ? `http://localhost:3000${image}`
-                    : "/path/to/default/profile/image.png"
-                }
-                alt="p"
-                className="w-10 h-10 rounded-full border border-gray-300 mr-2"
-                onError={(e) =>
-                  (e.target.src = "/path/to/default/profile/image.png")
-                }
-              />
-              Profile
-            </Link>
-          </nav>
-          <footer className="mt-auto text-center">
-            <button
-              onClick={handleLogout}
-              className="flex items-center py-4 px-4 mb-2 rounded w-full hover:bg-green-700 text-left"
-            >
-              <FaSignOutAlt className="mr-2" /> Logout
-            </button>
-            <p className="mt-2">&copy; 2024 OrigamiTech</p>
-          </footer>
-        </div>
-      </aside>
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
-      {/* Main content */}
-      <main
-        className={`flex-1 p-6 transition-all duration-300 ${
-          isSidebarVisible ? "ml-64" : "ml-0"
-        }`}
+  const drawer = (
+    <div>
+      <Toolbar />
+      <Box
+        sx={{
+          
+          // textAlign: "center",
+          // color: 'white',
+          // backdropFilter: 'blur(10px)',
+          // borderRadius: '8px',
+          // boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+          // padding: '16px',
+          // height:'900px'
+        }}
       >
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            className="text-2xl text-gray-700"
-          >
-            ☰
-          </button>
-        </div>
-        <Outlet /> {/* This will render the nested routes */}
-      </main>
+        <Avatar
+          src={user.image ? `http://localhost:3000${user.image}` : "https://via.placeholder.com/80"}
+          alt="Profile"
+          sx={{ width: 80, height: 80, margin: "auto", mb: 2 }}
+        />
+        <Typography variant="h6">{user.Nom}</Typography>
+        <List sx={{ color: 'white' }}>
+          <ListItem button component={Link} to="/">
+            <ListItemIcon>
+              <Home sx={{ color: 'white' }} />
+            </ListItemIcon>
+            <ListItemText primary="Accueil" />
+          </ListItem>
+          <ListItem button component={Link} to="/tasks">
+            <ListItemIcon>
+              <TaskAlt sx={{ color: 'white' }} />
+            </ListItemIcon>
+            <ListItemText primary="Mes Tâches" />
+          </ListItem>
+          {/* <ListItem button component={Link} to="/gantt">
+            <ListItemIcon>
+              <CalendarToday sx={{ color: 'white' }} />
+            </ListItemIcon>
+            <ListItemText primary="Gantt" />
+          </ListItem> */}
+          <ListItem button component={Link} to="/calendrier">
+            <ListItemIcon>
+              <CalendarToday sx={{ color: 'white' }} />
+            </ListItemIcon>
+            <ListItemText primary="Calendrier" />
+          </ListItem>
+        </List>
+        <Divider />
+      </Box>
     </div>
+  );
+
+  return (
+    <ThemeProvider theme={darkTheme}>
+      <Box sx={{ display: "flex" }}>
+        <CssBaseline />
+        <AppBar position="fixed" sx={{ width: { sm: `calc(100% - ${drawerWidth}px)` }, ml: { sm: `${drawerWidth}px` }, background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', boxShadow: 'none' }}>
+          <Toolbar>
+            {isMobile && (
+              <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2 }}>
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Typography variant="h6" noWrap sx={{ flexGrow: 1, color: 'white' }}>
+              Utilisateur 
+            </Typography>
+            <IconButton>
+              <Badge badgeContent={taskCounts.totalTaches} color="error">
+                <TaskAlt />
+              </Badge>
+            </IconButton>
+            <IconButton edge="end" color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+              <AccountCircle />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={open}
+              onClose={() => setAnchorEl(null)}
+              PaperProps={{
+                sx: { mt: 1.5, ml: 0.5, width: 200, "& .MuiMenuItem-root": { borderRadius: 1 } },
+              }}
+            >
+              <MenuItem component={Link} to="/profile">
+                <AccountCircle />
+                <ListItemText primary="Profile" />
+              </MenuItem>
+              <MenuItem onClick={handleLogout}>
+                <Logout />
+                <ListItemText primary="Se Déconnecter" />
+              </MenuItem>
+            </Menu>
+          </Toolbar>
+        </AppBar>
+
+        {/* Drawer */}
+        <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{ keepMounted: true }}
+            sx={{
+              display: { xs: "block", sm: "none" },
+              "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth, backdropFilter: 'blur(10px)', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' },
+            }}
+          >
+            {drawer}
+          </Drawer>
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: "none", sm: "block" },
+              "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth, backdropFilter: 'blur(10px)', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+
+        {/* Main Content */}
+        <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
+          <Toolbar />
+          <Outlet /> {/* Content goes here */}
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 };
 
